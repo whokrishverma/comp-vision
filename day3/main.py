@@ -1,24 +1,109 @@
-##STEPS
-    #read image
-    #detect faces 
-    #blur faces
-    #save image
-
-#IMAGE
+import os
+import argparse
 
 import cv2
 import mediapipe as mp
 
-img_path = 'assets/img2.jpg'
 
-img = cv2.imread(img_path)
+def process_img(img, face_detection):
 
-mp_face_detection = mp.solutions.face_detection
+    H, W, _ = img.shape
 
-with mp_face_detection.FaceDetection(min_detection_confidence=0.5) as face_detection:
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     out = face_detection.process(img_rgb)
 
-    for dectection in out.detections:
-        location_data = detection.location_data
-        bbox = location_data
+    if out.detections is not None:
+        for detection in out.detections:
+            location_data = detection.location_data
+            bbox = location_data.relative_bounding_box
+
+            x1, y1, w, h = bbox.xmin, bbox.ymin, bbox.width, bbox.height
+
+            x1 = int(x1 * W)
+            y1 = int(y1 * H)
+            w = int(w * W)
+            h = int(h * H)
+
+            # clamp to valid frame bounds so we never slice out-of-range
+            x1 = max(0, x1)
+            y1 = max(0, y1)
+            w = min(w, W - x1)
+            h = min(h, H - y1)
+
+            if w <= 0 or h <= 0:
+                continue  # skip malformed detections entirely
+
+
+            # blur faces
+            img[y1:y1 + h, x1:x1 + w, :] = cv2.GaussianBlur(
+                img[y1:y1 + h, x1:x1 + w, :], (201, 201), 0
+            )
+
+    return img
+
+
+args = argparse.ArgumentParser()
+
+args.add_argument("--mode", default='webcam')
+args.add_argument("--filePath", default=None)
+
+args = args.parse_args()
+
+
+output_dir = './output'
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+
+# detect faces
+mp_face_detection = mp.solutions.face_detection
+
+
+with mp_face_detection.FaceDetection(model_selection=0, min_detection_confidence=0.5) as face_detection:
+
+    if args.mode in ["image"]:
+        # read image
+        img = cv2.imread(args.filePath)
+
+        img = process_img(img, face_detection)
+
+        # save image
+        cv2.imwrite(os.path.join(output_dir, 'output.png'), img)
+
+    elif args.mode in ['video']:
+
+        cap = cv2.VideoCapture(args.filePath)
+        ret, frame = cap.read()
+
+        output_video = cv2.VideoWriter(os.path.join(output_dir, 'output.mp4'),
+                                        cv2.VideoWriter_fourcc(*'MP4V'),
+                                        25,
+                                        (frame.shape[1], frame.shape[0]))
+
+        while ret:
+
+            frame = process_img(frame, face_detection)
+
+            output_video.write(frame)
+
+            ret, frame = cap.read()
+
+        cap.release()
+        output_video.release()
+
+    elif args.mode in ['webcam']:
+        cap = cv2.VideoCapture(0)
+
+        ret, frame = cap.read()
+        while ret:
+            frame = cv2.flip(frame, 1)
+            frame = process_img(frame, face_detection)
+
+            cv2.imshow('frame', frame)
+
+            if cv2.waitKey(25) & 0xFF == ord('q'):
+                break
+
+            ret, frame = cap.read()
+
+        cap.release()
+        cv2.destroyAllWindows()
