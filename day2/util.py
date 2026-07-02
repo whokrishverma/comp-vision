@@ -1,24 +1,61 @@
 import numpy as np
-import cv2
+
+COLOR_MAP = {
+
+    "red": (
+        np.array([0, 120, 70]),
+        np.array([10, 255, 255]),
+        np.array([170, 120, 70]),
+        np.array([179, 255, 255])
+    ),
+
+    "green": (
+        np.array([35, 70, 70]),
+        np.array([85, 255, 255])
+    ),
+
+    "blue": (
+        np.array([100, 150, 70]),
+        np.array([130, 255, 255])
+    ),
+
+    "yellow": (
+        np.array([20, 100, 100]),
+        np.array([35, 255, 255])
+    ),
+
+    "orange": (
+        np.array([10, 100, 100]),
+        np.array([20, 255, 255])
+    ),
+
+    "purple": (
+        np.array([130, 80, 80]),
+        np.array([160, 255, 255])
+    ),
+
+    "cyan": (
+        np.array([80, 100, 100]),
+        np.array([100, 255, 255])
+    ),
+
+    "white": (
+        np.array([0, 0, 180]),
+        np.array([179, 40, 255])
+    ),
+
+    "black": (
+        np.array([0, 0, 0]),
+        np.array([179, 255, 40])
+    )
+}
+
 
 def get_limits(color):
 
-    c = np.uint8([[color]])
-    hsvC = cv2.cvtColor(c, cv2.COLOR_BGR2HSV)
+    color = color.lower()
 
-    hue = hsvC[0][0][0]
+    if color not in COLOR_MAP:
+        raise ValueError(f"'{color}' is not a supported color.")
 
-    # Red wraps around the HSV hue scale
-    if hue < 10:
-        lower1 = np.array([0, 100, 100], dtype=np.uint8)
-        upper1 = np.array([hue + 10, 255, 255], dtype=np.uint8)
-
-        lower2 = np.array([180 - (10 - hue), 100, 100], dtype=np.uint8)
-        upper2 = np.array([180, 255, 255], dtype=np.uint8)
-
-        return (lower1, upper1), (lower2, upper2)
-
-    lower = np.array([hue - 10, 100, 100], dtype=np.uint8)
-    upper = np.array([hue + 10, 255, 255], dtype=np.uint8)
-
-    return lower, upper
+    return COLOR_MAP[color]
