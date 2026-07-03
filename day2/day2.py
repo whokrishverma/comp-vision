@@ -152,12 +152,12 @@ from util import get_limits
 # SETTINGS
 # ---------------------------------
 
-COLOR = "green"      # red, green, blue, yellow, orange,
+COLOR = "yellow"      # red, green, blue, yellow, orange,
                      # purple, cyan, white, black
 
 CAMERA = 0
 
-MIN_AREA = 1000
+MIN_AREA = 000
 
 # ---------------------------------
 
